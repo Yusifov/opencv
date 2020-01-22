@@ -1,23 +1,22 @@
 package webcam;
 
+import data.Data;
 import com.github.sarxos.webcam.Webcam;
 import java.awt.Dimension;
 import java.awt.Image;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.InetAddress;
+import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 import org.opencv.core.Core;
-import org.opencv.core.Mat;
-import org.opencv.core.MatOfRect;
-import org.opencv.core.Point;
-import org.opencv.core.Rect;
-import org.opencv.core.Scalar;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.objdetect.CascadeClassifier;
 
 public class webcamGUI extends javax.swing.JFrame {
 
@@ -25,8 +24,8 @@ public class webcamGUI extends javax.swing.JFrame {
     
     public webcamGUI() {
         initComponents();
-        setLocation(80, 130);
-        setSize(1280, 600);
+        setLocation(80, 60);
+        setSize(650, 650);
         webcam =  Webcam.getDefault();
         webcam.setViewSize(new Dimension(640, 480));
         webcam.open();
@@ -43,51 +42,84 @@ public class webcamGUI extends javax.swing.JFrame {
 
         jButton1 = new javax.swing.JButton();
         jLabel1 = new javax.swing.JLabel();
+        IP = new javax.swing.JTextField();
+        connect = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
-        setPreferredSize(new java.awt.Dimension(1280, 480));
+        setPreferredSize(new java.awt.Dimension(800, 480));
 
-        jButton1.setText("jButton1");
+        jButton1.setText("Start");
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton1ActionPerformed(evt);
             }
         });
 
+        connect.setText("Connect");
+        connect.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                connectActionPerformed(evt);
+            }
+        });
+
+        jLabel2.setFont(new java.awt.Font("SansSerif", 1, 18)); // NOI18N
+        jLabel2.setText("Drone");
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(320, 320, 320)
-                .addComponent(jButton1)
-                .addContainerGap(1107, Short.MAX_VALUE))
+                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 260, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(0, 0, Short.MAX_VALUE))
             .addGroup(layout.createSequentialGroup()
-                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 640, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, 780, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addContainerGap()
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 640, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(layout.createSequentialGroup()
+                        .addComponent(jButton1)
+                        .addGap(210, 210, 210)
+                        .addComponent(IP, javax.swing.GroupLayout.PREFERRED_SIZE, 164, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(63, 63, 63)
+                        .addComponent(connect)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 480, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 4, Short.MAX_VALUE))
-                    .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addGap(18, 18, 18)
-                .addComponent(jButton1)
-                .addContainerGap())
+                .addComponent(jLabel2)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 514, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(14, 14, 14)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jButton1)
+                    .addComponent(IP, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(connect))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
-
+  private Socket socket;
+    private ObjectOutputStream out;
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
        new video().start();
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void connectActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectActionPerformed
+           try {
+            socket = new Socket(IP.getText().trim(), 9999);
+            out = new ObjectOutputStream(socket.getOutputStream());
+            Data data = new Data();
+            data.setStatus("new");
+            data.setName("Laing raven");
+            out.writeObject(data);
+            out.flush();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, e, "Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_connectActionPerformed
 
     /**
      * @param args the command line arguments
@@ -128,39 +160,40 @@ public class webcamGUI extends javax.swing.JFrame {
         @Override
        public void run() {
            int i = 0;
+           int j = 0;
            Image image;
            System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-           Mat src;
-           String xmlFile = "xml/lbpcascade_frontalface.xml";
-           CascadeClassifier cc = new CascadeClassifier(xmlFile);
-           MatOfRect faceDetection = new MatOfRect();
-           Rect dikdortgen = null;
-
             while(true) {
-                image  = webcam.getImage();
-                jLabel1.setIcon(new ImageIcon(image));
-               try {
-                   ImageIO.write(webcam.getImage(), "jpg", new File("image\\A"+i+".jpg"));
-               } catch (IOException ex) {
-                   Logger.getLogger(webcamGUI.class.getName()).log(Level.SEVERE, null, ex);
-               }
-                src =  Imgcodecs.imread("image\\A"+i+".jpg");
-                cc.detectMultiScale(src, faceDetection);
-                
-                for(Rect rect: faceDetection.toArray()) {
-                    Imgproc.rectangle(src, new org.opencv.core.Point(rect.x, rect.y), new org.opencv.core.Point(rect.x + rect.width, rect.y + rect.height) , new Scalar(0, 0, 255), 2);
-                    dikdortgen=new Rect( new org.opencv.core.Point(rect.x, rect.y),new org.opencv.core.Point(rect.x + rect.width, rect.y + rect.height));
-		}
-                Imgcodecs.imwrite("image\\A"+i+".jpg", src);
-                Mat yeniGoruntu=new Mat(src,dikdortgen);          
-                Imgcodecs.imwrite("image\\A"+i+".jpg", yeniGoruntu);
-                jLabel2.setIcon(new ImageIcon("image\\A"+i+".jpg"));
-                i++;
+                   image  = webcam.getImage();
+                   jLabel1.setIcon(new ImageIcon(image));
+                   try {
+                    ImageIO.write(webcam.getImage(), "jpg", new File("image\\A"+i+".jpg"));
+                    i++;
+                   } catch (IOException ex) {
+                    Logger.getLogger(webcamGUI.class.getName()).log(Level.SEVERE, null, ex);
+                   }
+                try {
+                    File f = new File("image\\A"+j+".jpg");
+                    j++;
+                    FileInputStream in = new FileInputStream(f);
+                    byte b[] = new byte[in.available()];
+                    in.read(b);
+                    Data data = new Data();
+                    data.setStatus("Image");
+                    data.setName("A"+i+".jpg");
+                    data.setFile(b);
+                    out.writeObject(data);
+                    out.flush(); 
+                } catch (Exception e) {
+                    System.out.println("Gonderilmedi ----------- "+ i);
+                }
             } 
         }
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JTextField IP;
+    private javax.swing.JButton connect;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
